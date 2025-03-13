@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diario Personal Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-size: cover;
+      background-position: center;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-gray-800">
+  <!-- Encabezado -->
+  <header class="p-4 bg-white shadow-md">
+    <h1 class="text-2xl font-bold text-center">Mi Diario Personal</h1>
+  </header>
+
+  <!-- Contenedor principal -->
+  <main class="flex flex-grow">
+    <!-- Sección lateral -->
+    <aside class="w-64 p-4 bg-gray-100 border-r">
+      <h2 class="mb-4 text-lg font-semibold">Entradas</h2>
+      <ul id="entry-list" class="space-y-2">
+        <!-- Las entradas se mostrarán aquí -->
+      </ul>
+      <div id="placeholder" class="hidden text-center text-gray-500">
+        <p class="italic">No hay entradas aún. ¡Empieza a escribir!</p>
+      </div>
+    </aside>
+
+    <!-- Área principal -->
+    <section class="flex-grow p-4 overflow-auto">
+      <form id="entry-form" class="space-y-4">
+        <input type="text" id="entry-title" placeholder="Título" class="w-full p-2 border rounded">
+        <textarea id="entry-content" placeholder="Escribe tu entrada aquí..." rows="10" class="w-full p-2 border rounded"></textarea>
+        <button type="submit" class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600">Guardar Entrada</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Menú de configuración -->
+  <footer class="p-4 bg-white shadow-md">
+    <div class="flex justify-between">
+      <div>
+        <label for="background-select" class="mr-2">Fondo:</label>
+        <select id="background-select" class="p-2 border rounded">
+          <option value="color:white">Blanco</option>
+          <option value="color:lightblue">Azul claro</option>
+          <option value="image:imagen1.jpg">Imagen 1</option>
+          <option value="image:imagen2.jpg">Imagen 2</option>
+          <option value="image:imagen3.jpg">Imagen 3</option>
+          <option value="image:imagen4.jpg">Imagen 4</option>
+          <option value="image:imagen5.jpg">Imagen 5</option>
+          <option value="image:imagen6.jpg">Imagen 6</option>
+          <option value="image:imagen7.jpg">Imagen 7</option>
+          <option value="image:imagen8.jpg">Imagen 8</option>
+        </select>
+      </div>
+      <div>
+        <button id="export-btn" class="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600">Exportar</button>
+        <button id="import-btn" class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600">Importar</button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Cargar entradas desde LocalStorage
+    let entries = JSON.parse(localStorage.getItem('diaryEntries')) || [];
+
+    const entryList = document.getElementById('entry-list');
+    const placeholder = document.getElementById('placeholder');
+    const entryForm = document.getElementById('entry-form');
+    const entryTitle = document.getElementById('entry-title');
+    const entryContent = document.getElementById('entry-content');
+    const exportBtn = document.getElementById('export-btn');
+    const importBtn = document.getElementById('import-btn');
+    const backgroundSelect = document.getElementById('background-select');
+
+    // Función para guardar una entrada
+    function saveEntry() {
+      const title = entryTitle.value.trim();
+      const content = entryContent.value.trim();
+      if (!title || !content) return;
+
+      const date = new Date().toLocaleDateString();
+      const entry = { title, content, date };
+      entries.push(entry);
+      localStorage.setItem('diaryEntries', JSON.stringify(entries));
+      loadEntries();
+      entryTitle.value = '';
+      entryContent.value = '';
+    }
+
+    // Función para cargar las entradas
+    function loadEntries() {
+      entryList.innerHTML = '';
+      if (entries.length === 0) {
+        placeholder.classList.remove('hidden');
+      } else {
+        placeholder.classList.add('hidden');
+        entries.forEach((entry, index) => {
+          const li = document.createElement('li');
+          li.className = 'flex justify-between items-center p-2 bg-white rounded shadow';
+          li.innerHTML = `
+            <div>
+              <strong>${entry.title}</strong><br>
+              <small>${entry.date}</small>
+            </div>
+            <div>
+              <button class="view-btn px-2 py-1 bg-blue-500 text-white rounded" data-index="${index}">Ver</button>
+              <button class="delete-btn px-2 py-1 bg-red-500 text-white rounded" data-index="${index}">Eliminar</button>
+            </div>
+          `;
+          entryList.appendChild(li);
+        });
+      }
+    }
+
+    // Función para ver una entrada
+    function viewEntry(index) {
+      const entry = entries[index];
+      alert(`${entry.title}\n\n${entry.content}\n\nFecha: ${entry.date}`);
+    }
+
+    // Función para eliminar una entrada
+    function deleteEntry(index) {
+      if (confirm('¿Estás seguro de que deseas eliminar esta entrada?')) {
+        entries.splice(index, 1);
+        localStorage.setItem('diaryEntries', JSON.stringify(entries));
+        loadEntries();
+      }
+    }
+
+    // Evento para guardar una entrada
+    entryForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveEntry();
+    });
+
+    // Eventos dinámicos para ver y eliminar entradas
+    entryList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('view-btn')) {
+        const index = e.target.getAttribute('data-index');
+        viewEntry(index);
+      } else if (e.target.classList.contains('delete-btn')) {
+        const index = e.target.getAttribute('data-index');
+        deleteEntry(index);
+      }
+    });
+
+    // Exportar entradas
+    exportBtn.addEventListener('click', () => {
+      const dataStr = JSON.stringify(entries, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'diario.json';
+      a.click();
+    });
+
+    // Importar entradas
+    importBtn.addEventListener('click', () => {
+      if (!confirm('Al importar se reemplazarán todas las entradas actuales. ¿Deseas continuar?')) return;
+
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const importedData = JSON.parse(event.target.result);
+              entries = importedData;
+              localStorage.setItem('diaryEntries', JSON.stringify(entries));
+              loadEntries();
+            } catch (error) {
+              alert('Error al importar el archivo.');
+            }
+          };
+          reader.readAsText(file);
+        }
+      };
+      input.click();
+    });
+
+    // Cambiar fondo
+    backgroundSelect.addEventListener('change', (e) => {
+      const [type, value] = e.target.value.split(':');
+      if (type === 'color') {
+        document.body.style.backgroundImage = 'none';
+        document.body.style.backgroundColor = value;
+      } else if (type === 'image') {
+        document.body.style.backgroundImage = `url('${value}')`;
+        document.body.style.backgroundColor = 'transparent';
+      }
+    });
+
+    // Cargar entradas al iniciar
+    loadEntries();
+  </script>
+</body>
+</html>
